@@ -6,6 +6,7 @@ Git test.
 
 add test dev_push master_merge
 
+<<<<<<< HEAD
 y1
 y2
 y3
@@ -16,3 +17,8 @@ Y5
 456
 
 add from master
+=======
+add merge
+
+add test dev_push master_merge
+>>>>>>> add: test_merge
