@@ -8,3 +8,5 @@ Create a new branch is quick.
 Create a new branch is quick and simple.
 
 add merge
+
+add test dev_push master_merge
