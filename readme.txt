@@ -5,3 +5,7 @@ GIt tracks changes of files.
 Git test.
 
 add test dev_push master_merge
+
+y1
+y2
+y3
