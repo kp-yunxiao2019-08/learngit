@@ -10,8 +10,134 @@ ES_TEST
   ./bin/elasticsearch
   bin/kibana
   http://localhost:5601/app/kibana#/dev_tools/console?_g=()
-  ```
   
+  http://ip:9200/kb_question_online/question/_search?pretty&q=_id:id_value
+  http://ip:9200/kb_filter_question_online/question/_search?pretty&q=_id:id_value
+  http://ip:9200/kb_filter_question_online/question/_search?pretty&q=type_tags.values.name:图表题
+  # kb_zyk
+  http://ip:9200/kb_zyk_questions_online/questions/_search?pretty
+  # 收藏表
+  http://ip:9200/kb_mt_collect_master/collect/_search?pretty
+  
+  # 查看ES运行状态
+  curl -XGET http://ip:9200/_cat/nodes?v&h=http,version,jdk,disk.total,disk.used,disk.avail,disk.used_percent,heap.current,heap.percent,heap.max,ram.current,ram.percent,ram.max,master
+  
+  
+  # 搜索指定索引下数据
+  curl http://ip:9200/kb_zyk_questions_master/_search?pretty
+  
+  # curl QUERY DSL条件查询
+  curl -X GET "ip:9200/_search?pretty" -H 'Content-Type: application/json' -d'
+  {
+    "query": {
+  			"match": {"kb_ques_id":3720153338}
+    }
+  }
+  '
+  
+  # 删除索引
+  curl -XDELETE http://localhost:9200/index_name
+  # 查看该ip:port下所有索引
+  curl http://ip:9200/_cat/indices
+  # 查看该ip:port下索引kb_mt_collect_master的setting、mapping、alias
+  curl http://ip:9200/kb_mt_collect_master?pretty
+  # 查看索引及别名
+  curl http://ip:9200/_cat/aliases
+  
+  
+  # 设置kb_question_master索引不为只读模式
+  # https://blog.csdn.net/m0_37927869/article/details/104915265
+  curl -XPUT 'ip:9200/kb_question_master/_settings'  -H 'Content-Type: application/json' -d '{"index.blocks.read_only_allow_delete": null}'
+  
+  # 查询结果只显示指定字段
+  https://www.letianbiji.com/elasticsearch/es7-show-partial-fields.html
+  ```
+
+  - ```python
+    # 自己的 
+    ES 7.x 不支持mapping下指定类型
+    #https://www.elastic.co/guide/en/elasticsearch/reference/current/removal-of-types.html
+    PUT /es_share
+    {
+      "settings": {
+        "analysis": {
+          "analyzer": {
+            "first_analyzer":{
+              "type": "custom",
+              "char_filter": ["html_strip"],
+              "tokenizer": "standard",
+              "filter": "lowercase"
+            }
+          }
+        }
+      }, 
+      "mappings": {
+        	# poems
+          "properties": {
+            "title_text": {
+              "type": "text",
+              "analyzer": "first_analyzer"
+            },
+            "title": {"type": "keyword"},
+            "dynasty": {"type": "keyword"},
+            "author": {"type": "keyword"},
+            "poem": {"type": "keyword"}
+          }
+        }
+    }
+    ```
+
+  ```
+    
+  - ```
+    
+    PUT /my-index-000001
+    {
+      "settings": {
+        "analysis": {
+          "analyzer": {
+            "my_analyzer": {
+              "tokenizer": "keyword",
+              "char_filter": [
+                "html_strip"
+              ]
+            }
+          }
+        }
+      }
+    }
+    
+    PUT /es_share
+    {
+      "settings": {
+        "analysis": {
+          "analyzer": {
+            "first_analyzer":{
+              "type": "custom",
+              "char_filter": ["html_strip"],
+              "tokenizer": "standard",
+              "filter": "lowercase"
+            }
+          }
+        }
+      }
+    }
+    
+    {
+    "knowledges": "1556479999",
+  "limit": 10,
+    "offset": 0,
+    "period": "高中",
+    "sort_by": [{"year":-1}],
+    "subject": "历史",
+    "provinces": "山东-济南",
+    "type_tags": "5f49efa2a0eb0c6869350129-新高考题型-读图题",
+    "type": "简答题"
+    }
+  ```
+
+  - 
+
   ```python
   # mapping 的精髓
   PUT my-index-000001
@@ -65,7 +191,6 @@ ES_TEST
     }
   }
   ```
-  
 
 data
 
@@ -298,28 +423,29 @@ GET /megacorp/employee/_search
 ```
 
 - __节点__：一个运行中的 Elasticsearch 实例称为一个节点
-  
+
   - 每个节点都知道任意文档所处的位置(类比域名映射)，并且能够将我们的请求直接转发到存储我们所需文档的节点
   - 主节点并不需要涉及到文档级别的变更和搜索等操作
-  
+
 - __集群__：由一个或者多个拥有相同 `cluster.name` 配置的节点组成，它们共同承担数据和负载的压力
-  
+
   - 当有节点加入集群中或者从集群中移除节点时，集群将会重新平均分布所有的数据。
-  
+
 - __索引__ ： 保存相关数据的地方。 索引实际上是指向一个或者多个物理 *分片* 的 *逻辑命名空间*
 
--  __分片__： 是一个底层的 *工作单元* ，
+- __分片__： 是一个底层的 *工作单元* ，
+
   - 它仅保存了全部数据中的一部分，它本身就是一个完整的搜索引擎
   - 但应用程序是直接与索引而不是与分片进行交互
   - 分片是数据的容器，文档保存在分片内，分片又被分配到集群内的各个节点里
   - 一个分片可以是 *主* 分片或者 *副本* 分片。 索引内任意一个文档都归属于一个主分片，所以主分片的数目决定着索引能够保存的最大数据量
   - 一个副本分片只是一个主分片的拷贝，为搜索和返回文档等读操作提供服务以及数据备份功能
   - 索引建立的时候就已经确定了主分片数，但是副本分片数可以随时修改。
-  
+
 - 相同分片的副本不会放在同一节点
-  
+
   - 当索引一个文档的时候，文档会被存储到一个主分片中
-  
+
 - __文档__。唯一标识：一个文档的 `_index` 、 `_type` 和 `_id` 唯一标识一个文档
 
   - 指最顶层或者根对象, 这个根对象被序列化成 JSON 并存储到 Elasticsearch 中，指定了唯一 ID。
@@ -355,8 +481,8 @@ GET /megacorp/employee/_search
     - `hits.hits` : 包含所查询结果的前十个文档。`list`
       - 每个文档：
         -  `_index` 、 `_type` 、 `_id`  ：唯一标识
-        - `_source` ：文档数据内容。`dict`
-        - `_score` : 衡量文档与查询的匹配程度的得分。`int`
+        -  `_source` ：文档数据内容。`dict`
+        -  `_score` : 衡量文档与查询的匹配程度的得分。`int`
     - `hits.max_score` : 与查询所匹配文档的 `_score` 的最大值。`int`
   - `took` : 执行整个搜索请求耗费的时间，单位毫秒。`int`
   - `_shards` : 查询中参与分片的总数，以及这些分片成功数量失败数量
@@ -412,7 +538,7 @@ GET /megacorp/employee/_search
 
 - 测试分析器
 
-  -  `analyze` API 来可以看文本是如何被分析的。需指定分析器和查询文本
+  - `analyze` API 来可以看文本是如何被分析的。需指定分析器和查询文本
 
   - 例：
 
@@ -485,17 +611,17 @@ GET /megacorp/employee/_search
   - 域最重要的属性是 `type` 。对于不是 `string` 的域，只需要设置 `type` 
 
   - `string` 域映射的两个最重要属性是 `index` 和 `analyzer`
-  
+
     - `index` :
-  
+
       - `analysed` : 分析字符串，再做全文索引这个域
-  
+
       - `not_analysed` ：不分析字符串，精确索引这个域
-  
+
       - `no` ：不索引这个域
-  
+
       - `index`默认属性为`analysed`，若想映射某个字符串域为精确索引，需要设置它为`no_analysed`
-  
+
         ```Python
         {
           "properties": {
@@ -506,11 +632,11 @@ GET /megacorp/employee/_search
           }
         }
         ```
-  
+
     - `analyser`分析器
-  
+
       - ES默认使用`standard`分析器，可以自定义指定一个内置分析器
-  
+
       - ```python
         {
             {field}: {
@@ -723,7 +849,7 @@ GET /megacorp/employee/_search
     - *必须* 匹配，但它以不评分、过滤模式来进行。
     - 这些语句对评分没有贡献，只是根据过滤标准来排除或包含文档。
 
-  -  **`bool` **
+  - **`bool` **
     - 将每一个子查询独自地计算文档的相关性得分进行合并，并且返回一个代表整个布尔操作的得分
 
   ```python
@@ -783,6 +909,7 @@ GET /megacorp/employee/_search
   ```
 
   - `constant_score`
+
     - 将一个不变的常量评分应用于所有匹配的文档
 
     ```python
@@ -816,7 +943,7 @@ GET /megacorp/employee/_search
 
 - 验证查询
 
-  -  `validate-query` 与`explain`
+  - `validate-query` 与`explain`
 
     ```python
     GET /gb/tweet/_validate/query?explain 
@@ -844,7 +971,7 @@ GET /megacorp/employee/_search
 
 - 排序性与相关性
 
-  -  默认排序是以 `_score` 降序，`_score`，float类型
+  - 默认排序是以 `_score` 降序，`_score`，float类型
 
   - `sort`
 
@@ -872,7 +999,7 @@ GET /megacorp/employee/_search
     ```
 
   - 相关性
-  
+
     -  *relevance* 是用来计算全文本字段的值相对于全文本检索词相似程度的算法
     -  Elasticsearch 的相似度算法被定义为检索词频率/反向文档频率， *TF/IDF*
     -  **检索词频率**
@@ -883,10 +1010,10 @@ GET /megacorp/employee/_search
        -  字段的长度越长，相关性越低。 检索词出现在一个短的 title 要比同样的词出现在一个长的 content 字段权重更大。
     -  __增加相关性的其他方式__
        -  短语查询中检索词的距离或模糊查询里的检索词相似度。
-       -   yes|no 型子句，匹配的子句越多，相关性评分越高
-  
+       -  yes|no 型子句，匹配的子句越多，相关性评分越高
+
   - __理解相关性评分标准__`explain`
-  
+
     ```python
     # explain
     GET /test/employee/_search?explain=true
@@ -1038,9 +1165,9 @@ GET /megacorp/employee/_search
     # 反向文档频率，检索词 `rock climb` 在索引上所有文档的 `about` 字段中出现的次数。
     # 字段长度准则，在这个文档中， `about` 字段内容的长度 -- 内容越长，值越小。
     ```
-  
+
     -  返回结果含_explanation 。每个入口都包含一个 description 、 value 、 details 字段，它分别是计算的类型、计算结果和任何我们需要的计算细节
-     detail的四个desc :	
+       detail的四个desc :	
        - rock climbing 相关性评分计算的总结，检索词频率/反向文档频率或TF/IDF
        - 检索词频率，检索词 `rock climb` 在这个文档的 `about` 字段中的出现次数。
        - 反向文档频率，检索词 `rock climb` 在索引上所有文档的 `about` 字段中出现的次数。
@@ -1106,27 +1233,28 @@ GET /megacorp/employee/_search
 - ####类型和映射
 
   - *类型* 在 Elasticsearch 中表示一类相似的文档。 类型由 *名称* —比如 `user` 或 `blogpost` —和 *映射* 组成。
-  
+
 - *映射*, 就像数据库中的 schema ，描述了文档可能具有的字段或 *属性* 、每个字段的数据类型—比如 `string`, `integer` 或 `date` ，以及Lucene是如何索引和存储这些字段的
-  
-    - 根对象：映射的最高一层被称为 *根对象* 
-      - 一个 *properties* 节点，列出了文档中可能包含的每个字段的映射
-      - 各种`元数据字段`，它们都`以一个下划线开头`，例如 `_type` 、 `_id` 和 `_source`
-      - 设置项，控制如何动态处理新的字段，例如 `analyzer` 、 `dynamic_date_formats` 和 `dynamic_templates`
-      - 其他设置，可以同时应用在根对象和其他 `object` 类型的字段上，例如 `enabled` 、 `dynamic` 和 `include_in_all`
-    
+
+  - 根对象：映射的最高一层被称为 *根对象* 
+
+    - 一个 *properties* 节点，列出了文档中可能包含的每个字段的映射
+    - 各种`元数据字段`，它们都`以一个下划线开头`，例如 `_type` 、 `_id` 和 `_source`
+    - 设置项，控制如何动态处理新的字段，例如 `analyzer` 、 `dynamic_date_formats` 和 `dynamic_templates`
+    - 其他设置，可以同时应用在根对象和其他 `object` 类型的字段上，例如 `enabled` 、 `dynamic` 和 `include_in_all`
+
   - 属性
-  
+
     - **`type`** ：字段的数据类型，例如 `string` 或 `date`
     - **`index`** : 字段是否应当被当成全文来搜索（ `analyzed` ），或被当成一个准确的值（ `not_analyzed` ），还是完全不可被搜索（ `no` ）
     - **`analyzer`** ：确定在索引和搜索时全文字段使用的 `analyzer`
-  
+
   - 元数据 `_source`字段
-  
-    -  `_source` 字段存储代表文档体的JSON字符串
-  
+
+    - `_source` 字段存储代表文档体的JSON字符串
+
     - 在请求体中指定 `_source` 参数，可以只获取特定的字段
-  
+
       ```python
       GET /_search
       {
@@ -1134,15 +1262,15 @@ GET /megacorp/employee/_search
           "_source": [ "title", "created" ]
       }
       ```
-  
+
   - 元数据 `_all`字段
-  
+
     - 一个把其它字段值当作一个大字符串来索引的特殊字段
-  
+
     - 在没有指定字段时默认使用 `_all` 字段
-  
+
     - 禁用`_all`字段
-  
+
       ```python
       PUT /my_index/_mapping/my_type
       {
@@ -1151,13 +1279,13 @@ GET /megacorp/employee/_search
           }
       }
       ```
-  
+
     - 通过 `include_in_all` 设置来逐个控制字段是否要包含在 `_all` 字段中，默认值是 `true`
-  
+
     - 想要保留 `_all` 字段作为一个只包含某些特定字段的全文字段，例如只包含 `title`，`overview`，`summary` 和 `tags`。可以为所有字段默认禁用 `include_in_all` 选项，仅在选择的字段上启用
-  
+
     - `_all` 字段是经过分词的 `string` 字段，仅使用`_all`字段独自的分词器 经过分词的 `string` 字段。它使用默认分词器来分析它的值，不管这个值原本所在字段指定的分词器。
-  
+
       ```python
       PUT /my_index/my_type/_mapping
       {
@@ -1174,22 +1302,22 @@ GET /megacorp/employee/_search
           }
       }
       ```
-  
+
   - **__动态映射__**
-  
+
     - 映射新字段可以用 `dynamic` 配置
-  
+
       - **`true`** ：动态添加新的字段—缺省
-  
+
       - **`false`**   : 忽略新的字段
-  
+
       - **`strict`** ：如果遇到新字段抛出异常
-  
+
         - 配置参数 `dynamic` 可以用在根 `object` 或任何 `object` 类型的字段上。你可以将 `dynamic` 的默认值设置为 `strict` , 而只在指定的内部对象中开启它。如下示例：
-  
+
           - 如果遇到新字段，对象 `my_type` 就会抛出异常。
           - 内部对象 `stash` 遇到新字段就会动态创建新字段。
-  
+
           ```Python
           PUT /my_index
           {
@@ -1207,17 +1335,17 @@ GET /megacorp/employee/_search
               }
           }
           ```
-  
+
   - __自定义动态映射__       之动态模板`dynamic_templates`
-  
-    -  `mapping` 来指定映射规则，至少一个参数
-  
+
+    - `mapping` 来指定映射规则，至少一个参数
+
     - 模板按照顺序来检测，如下示例：
-  
+
       - `es` ：以 `_es` 结尾的字段名需要使用 `spanish` 分词器。
-  
+
       - `en` ：所有其他字段使用 `english` 分词器。
-  
+
         ```python
         PUT /my_index
         {
@@ -1243,9 +1371,9 @@ GET /megacorp/employee/_search
                     ]
         }}}
         ```
-  
+
     - `match` 参数只匹配字段名称， `path_match` 参数匹配字段在对象上的完整路径，所以 `address.*.name` 将匹配这样的字段：
-  
+
       ```python
       {
           "address": {
@@ -1255,13 +1383,13 @@ GET /megacorp/employee/_search
           }
       }
       ```
-  
+
   - __缺省映射 __  `_default_`
-  
+
     - `_default_` 映射可以方便地指定通用设置
-  
+
     - 通常，一个索引中的所有类型共享相同的字段和设置，除非类型在自己的映射中明确覆盖这些设置，如下：
-  
+
       ```python
       # 用 _default_ 映射为所有的类型禁用 _all 字段， 只在 blog 类型启用
       PUT /my_index
@@ -1276,7 +1404,7 @@ GET /megacorp/employee/_search
           }
       }
       ```
-  
+
 - __重新索引__，__之零停机的情况下从旧索引迁移到新索引__
 
   - 重新索引情况：虽然可以增加新的类型到索引中，或者增加新的字段到类型中，但是不能添加新的分析器或者对现有的字段做改动
@@ -1284,7 +1412,7 @@ GET /megacorp/employee/_search
   - 现有数据的这类改变最简单的办法就是重新索引：用新的设置创建新的索引并把文档从旧的索引复制到新的索引，
     - 重建索引方法
       - 用 [*scroll*](https://www.elastic.co/guide/cn/elasticsearch/guide/current/scroll.html) 从旧的索引检索批量文档 ，
-      -  然后用 [`bulk` API](https://www.elastic.co/guide/cn/elasticsearch/guide/current/bulk.html) 把文档推送到新的索引中。
+      - 然后用 [`bulk` API](https://www.elastic.co/guide/cn/elasticsearch/guide/current/bulk.html) 把文档推送到新的索引中。
 
 - __索引别名__
 
@@ -1584,194 +1712,195 @@ GET /megacorp/employee/_search
 
 - 缓存
 
-    - filter会产生缓存
-        - 基于使用频次自动缓存查询
-        - 文档数量超过 10,000 ，
-        - 或超过总文档数量的 3%
+  - filter会产生缓存
+    - 基于使用频次自动缓存查询
+    - 文档数量超过 10,000 ，
+    - 或超过总文档数量的 3%
 
 - 全文搜索(full-text search)
 
-    - 相关性（Relevance）
-      - 评价查询与其结果间的相关程度
-      - 根据这种相关程度对结果排名的一种能力
-        - TF/IDF 方法
-        - 地理位置邻近
-        - 模糊相似
-        - 其他算法
-    - 分析（analysis）
-      - 将文本块转换为有区别的、规范化的 token 的一个过程
-        - 目的：
-          - （a）创建倒排索引
-          - （b）查询倒排索引
+  - 相关性（Relevance）
+    - 评价查询与其结果间的相关程度
+    - 根据这种相关程度对结果排名的一种能力
+      - TF/IDF 方法
+      - 地理位置邻近
+      - 模糊相似
+      - 其他算法
+  - 分析（analysis）
+    - 将文本块转换为有区别的、规范化的 token 的一个过程
+      - 目的：
+        - （a）创建倒排索引
+        - （b）查询倒排索引
 
 - 文本查询分类
 
-    - 所有查询会或多或少的执行相关度计算，但不是所有查询都有分析阶段。和一些特殊的完全不会对文本进行操作的查询（如 `bool` 或 `function_score` ）不同，文本查询可以划分成两大家族
-    - 
-    - 基于词项的查询
-        - 如`term`、 `fuzzy`
-            - 为底层查询，不需要分析阶段，
-            - 查询只对倒排索引的词项精确匹配，但会用 TF/IDF 算法为查询结果文档相关度评分
-    - 基于全文的查询
-        - 如`match`、`query_string`
-            - 为高层查询，它们了解字段映射的信息
-                - 如果查询 `日期（date）` 或 `整数（integer）` 字段，它们会将查询字符串分别作为日期或整数对待。
-                - 如果查询一个（ `not_analyzed` ）未分析的精确值字符串字段，它们会将整个查询字符串作为单个词项对待
-                - 如果要查询一个（ `analyzed` ）已分析的全文字段，它们会先将查询字符串传递到一个合适的分析器，然后生成一个供查询的词项列表
-                    - 一旦组成了词项列表，这个查询会对每个词项逐一执行底层的查询，再将结果合并，然后为每个文档生成一个最终的相关度评分
+  - 所有查询会或多或少的执行相关度计算，但不是所有查询都有分析阶段。和一些特殊的完全不会对文本进行操作的查询（如 `bool` 或 `function_score` ）不同，文本查询可以划分成两大家族
+  - 
+  - 基于词项的查询
+    - 如`term`、 `fuzzy`
+      - 为底层查询，不需要分析阶段，
+      - 查询只对倒排索引的词项精确匹配，但会用 TF/IDF 算法为查询结果文档相关度评分
+  - 基于全文的查询
+    - 如`match`、`query_string`
+      - 为高层查询，它们了解字段映射的信息
+        - 如果查询 `日期（date）` 或 `整数（integer）` 字段，它们会将查询字符串分别作为日期或整数对待。
+        - 如果查询一个（ `not_analyzed` ）未分析的精确值字符串字段，它们会将整个查询字符串作为单个词项对待
+        - 如果要查询一个（ `analyzed` ）已分析的全文字段，它们会先将查询字符串传递到一个合适的分析器，然后生成一个供查询的词项列表
+          - 一旦组成了词项列表，这个查询会对每个词项逐一执行底层的查询，再将结果合并，然后为每个文档生成一个最终的相关度评分
 
 - 全文搜索之 `match`
 
-    - 数据
+  - 数据
 
-        ```python
-        POST /my_index/my_type/_bulk
-        { "index": { "_id": 1 }}
-        { "title": "The quick brown fox" }
-        { "index": { "_id": 2 }}
-        { "title": "The quick brown fox jumps over the lazy dog" }
-        { "index": { "_id": 3 }}
-        { "title": "The quick brown fox jumps over the quick dog" }
-        { "index": { "_id": 4 }}
-        { "title": "Brown fox brown dog" }
-        ```
+    ```python
+    POST /my_index/my_type/_bulk
+    { "index": { "_id": 1 }}
+    { "title": "The quick brown fox" }
+    { "index": { "_id": 2 }}
+    { "title": "The quick brown fox jumps over the lazy dog" }
+    { "index": { "_id": 3 }}
+    { "title": "The quick brown fox jumps over the quick dog" }
+    { "index": { "_id": 4 }}
+    { "title": "Brown fox brown dog" }
+    ```
 
-    - `match`查询
+  - `match`查询
 
-        ```python
-        GET /my_index/my_type/_search
-        {
-            "query": {
-                "match": {
-                    "title": "QUICK!"
-                }
+    ```python
+    GET /my_index/my_type/_search
+    {
+        "query": {
+            "match": {
+                "title": "QUICK!"
             }
         }
-        ```
+    }
+    ```
 
-    - `match`查询步骤
+  - `match`查询步骤
 
-        - *检查字段类型* 。
+    - *检查字段类型* 。
 
-            标题 `title` 字段是一个 `string` 类型（ `analyzed` ）已分析的全文字段，这意味着查询字符串本身也应该被分析
+      标题 `title` 字段是一个 `string` 类型（ `analyzed` ）已分析的全文字段，这意味着查询字符串本身也应该被分析
 
-        - *分析查询字符串* 。
+    - *分析查询字符串* 。
 
-            将查询的字符串 `QUICK!` 传入标准分析器中，输出的结果是单个项 `quick` 。因为只有一个单词项，所以 `match` 查询执行的是单个底层 `term` 查询。
+      将查询的字符串 `QUICK!` 传入标准分析器中，输出的结果是单个项 `quick` 。因为只有一个单词项，所以 `match` 查询执行的是单个底层 `term` 查询。
 
-        - *查找匹配文档* 。
+    - *查找匹配文档* 。
 
-            用 `term` 查询在倒排索引中查找 `quick` 然后获取一组包含该项的文档，本例的结果是文档：1、2 和 3 。
+      用 `term` 查询在倒排索引中查找 `quick` 然后获取一组包含该项的文档，本例的结果是文档：1、2 和 3 。
 
-        - *为每个文档评分* 。
+    - *为每个文档评分* 。
 
-            用 `term` 查询计算每个文档相关度评分 `_score` ，这是种将词频（term frequency，即词 `quick` 在相关文档的 `title` 字段中出现的频率）和反向文档频率（inverse document frequency，即词 `quick` 在所有文档的 `title` 字段中出现的频率），以及字段的长度（即字段越短相关度越高）相结合的计算方式
+      用 `term` 查询计算每个文档相关度评分 `_score` ，这是种将词频（term frequency，即词 `quick` 在相关文档的 `title` 字段中出现的频率）和反向文档频率（inverse document frequency，即词 `quick` 在所有文档的 `title` 字段中出现的频率），以及字段的长度（即字段越短相关度越高）相结合的计算方式
 
-    - 查询结果为(不完整数据)
+  - 查询结果为(不完整数据)
 
-        ```python
-        "hits": [
-         {
-            "_id":      "1",
-            "_score":   0.5, 
-            "_source": {
-               "title": "The quick brown fox"
+    ```python
+    "hits": [
+     {
+        "_id":      "1",
+        "_score":   0.5, 
+        "_source": {
+           "title": "The quick brown fox"
+        }
+     },
+     {
+        "_id":      "3",
+        "_score":   0.44194174, 
+        "_source": {
+           "title": "The quick brown fox jumps over the quick dog"
+        }
+     },
+     {
+        "_id":      "2",
+        "_score":   0.3125, 
+        "_source": {
+           "title": "The quick brown fox jumps over the lazy dog"
+        }
+     }
+    ]
+    ```
+
+    - 文档 1 最相关，因为它的 `title` 字段更短，即 `quick` 占据内容的一大部分。
+    - 文档 3 比 文档 2 更具相关性，因为在文档 3 中 `quick` 出现了两次。
+
+  - 多词查询(https://www.elastic.co/guide/cn/elasticsearch/guide/current/match-multi-word.html)
+
+  - 正则查询
+
+    ```python
+    GET /my_index/my_type/_search
+    {
+      "query": {
+        "regexp": {
+          "title": "[a-z]he"
+        }
+      }
+    }
+    ```
+
+  - 查询结果
+
+    ```python
+    "hits" : [
+          {
+            "_index" : "my_index",
+            "_type" : "my_type",
+            "_id" : "1",
+            "_score" : 1.0,
+            "_source" : {
+              "title" : "The quick brown fox"
             }
-         },
-         {
-            "_id":      "3",
-            "_score":   0.44194174, 
-            "_source": {
-               "title": "The quick brown fox jumps over the quick dog"
+          },
+          {
+            "_index" : "my_index",
+            "_type" : "my_type",
+            "_id" : "2",
+            "_score" : 1.0,
+            "_source" : {
+              "title" : "The quick brown fox jumps over the lazy dog"
             }
-         },
-         {
-            "_id":      "2",
-            "_score":   0.3125, 
-            "_source": {
-               "title": "The quick brown fox jumps over the lazy dog"
-            }
-         }
-        ]
-        ```
-
-        - 文档 1 最相关，因为它的 `title` 字段更短，即 `quick` 占据内容的一大部分。
-        - 文档 3 比 文档 2 更具相关性，因为在文档 3 中 `quick` 出现了两次。
-
-    - 多词查询(https://www.elastic.co/guide/cn/elasticsearch/guide/current/match-multi-word.html)
-
-    - 正则查询
-
-        ```python
-        GET /my_index/my_type/_search
-        {
-          "query": {
-            "regexp": {
-              "title": "[a-z]he"
+          },
+          {
+            "_index" : "my_index",
+            "_type" : "my_type",
+            "_id" : "3",
+            "_score" : 1.0,
+            "_source" : {
+              "title" : "The quick brown fox jumps over the quick dog"
             }
           }
-        }
-        ```
+        ]
+    ```
 
-    - 查询结果
-
-        ```python
-        "hits" : [
-              {
-                "_index" : "my_index",
-                "_type" : "my_type",
-                "_id" : "1",
-                "_score" : 1.0,
-                "_source" : {
-                  "title" : "The quick brown fox"
-                }
-              },
-              {
-                "_index" : "my_index",
-                "_type" : "my_type",
-                "_id" : "2",
-                "_score" : 1.0,
-                "_source" : {
-                  "title" : "The quick brown fox jumps over the lazy dog"
-                }
-              },
-              {
-                "_index" : "my_index",
-                "_type" : "my_type",
-                "_id" : "3",
-                "_score" : 1.0,
-                "_source" : {
-                  "title" : "The quick brown fox jumps over the quick dog"
-                }
-              }
-            ]
-        ```
-
-        - query请求体不需要区分大小写
+    - query请求体不需要区分大小写
 
 - 区分权重
 
-    - shoulder: []
-    - boost : integer
+  - shoulder: []
+  - boost : integer
 
 - 分析器使用优先规则
 
-    - 查询自己定义的 `analyzer` ，否则
-    - 字段映射里定义的 `search_analyzer` ，否则
-    - 字段映射里定义的 `analyzer` ，否则
-    - 索引设置中名为 `default_search` 的分析器，默认为
-    - 索引设置中名为 `default` 的分析器，默认为
-    - `standard` 标准分析器
-    
+  - 查询自己定义的 `analyzer` ，否则
+  - 字段映射里定义的 `search_analyzer` ，否则
+  - 字段映射里定义的 `analyzer` ，否则
+  - 索引设置中名为 `default_search` 的分析器，默认为
+  - 索引设置中名为 `default` 的分析器，默认为
+  - `standard` 标准分析器
+
 - ```
-    # 查看索引
-    _cat/indices
-    # 查看分片
-    _cat/shards
-    # 查看
-    ```
+  # 查看索引
+  _cat/indices
+  # 查看分片
+  _cat/shards
+  # 查看
+  ```
 
 - 
+
 
 
 
