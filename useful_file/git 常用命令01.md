@@ -1,0 +1,123 @@
+- `git add filename1 filename2`
+  - 添加文件到暂存区
+- `git commit -m '注释内容'`
+  - 提交暂存区到本地版本库
+- `git branch `
+  - 查看所有分支
+- `git checkout -b 分支名`
+  - 创建并切换到`分`
+- `git checkout 分支名`
+  - 切换分支到`分支名`
+- `git checkout -`
+  - 切换到上个分支
+- `git merge 分支名`
+  - 合并`分支名`分支到当前分支，`push`时不需要`commit`
+- `git branch -d 分支名`【已测】
+  - 删除指定分支（本地）
+- `git push origin --delete 分支名`
+  - 删除远程分支
+- `**git branch --set-upstream-to=origin/分支名 分支名`
+  - 关联本地分支和远程分支
+- `**git pull origin dev(远程分支名称)**`
+  - 拉取远程分支
+- `git status`s
+  - 查看当前状态
+- `git log`
+  - 查看简要日志
+- `git reflog`
+  - 查看所有操作及对应的commit_id
+- `git diff`
+  - 比较工作区与暂存区的区别
+- `git diff --cached`
+  - 比较暂存区与本地版本库的区别
+- `git diff HEAD`
+  - 比较工作区与本地版本库的区别
+- `git branch -va`
+  - 查看远程和本地所有分支
+
+
+
+- 分支间不能切换时，需要先把当前分支提交然后可以切换
+- 
+- 版本回退示例（清除暂存区的文件）
+  - `git add file`
+    - 工作区和暂存区版本一致，和本地版本库不一致
+  - `git commit -m '添加file到暂存区'`
+    - 暂存区提交到本地版本库，形成快照
+  - `git reset HEAD`
+    - 回退到add之前的版本
+- `git restore --staged filename`
+  - 修改工作区版本，指定文件回退到add之前的版本【待测】
+- `git checkout file`
+  - 修改工作区版本，指定文件回退到add之前或commit之前的版本【待测】
+- `git reset commitid`
+  - 按版本ID回退
+- `git branch -vv`或 `git remote show origin`
+  - 查看已经配置分支关联信息
+- **远程版本回退
+  - 方式一
+    - 情况：已push到远程
+    - 回退本地版本，
+      - `git reset --hard HEAD^` 
+      - 或 `git reset --hard 指定版本号`
+    - 对已修改文件做备份，再回退本地文件
+      - `git checkout file`
+    - 强制推送到远程
+      - `git push -f`
+    - 以上操作完成远程版本回退，然后继续做自己的
+      - 把备份文件取回
+      - add、commit、push
+- 查看追踪文件(关联文件)
+  - `git ls-files`
+- 解决冲突
+  - 远程和本地合并【有时】会产生冲突
+    - 避免方法：修改文件前先执行`git pull origin origin_branch`
+  - 目前遇到的【有时】就是修改文件前__未__执行`git pull origin origin_branch`。
+    - 修改后`add`、`commit`一波流畅娴熟的操作，再`push`就一旦失败，
+      - 这时一定要复制一份本地文件以方便快速解决冲突，
+        - __前提1__该分支只有自己修改，其他人不参与
+        - __前提2__确认自己的代码绝对正确且不影响远程代码
+        - 满足任一前提就皆大欢喜
+      - 备份好自己的文件且满足任一前提情况下，执行以下操作
+        - `git pull origin origin_beanch`
+        - `cp copy_file aim_path`
+        - `git add copy_file`
+        - `git commit copy_file`
+        - `git push`
+- 取消文件追踪
+  - `git rm --cached file_name`
+- push
+  - `git push <远程主机名> <本地分支名> ：<远程分支名>` 例：
+  - `git push origin master:master`
+  - 省略远程本地分支名则表示删除指定的远程分支
+    - `git push origin :develop`等同于
+    - `git push origin --delete develop`
+  - 省略远程分支名则会把`branch_name`分支已commit的数据提交到远程
+    - `git push origin branch_name`
+- pull
+  - `git pull <远程主机名> <远程分支名>：<本地分支名>`
+  - 【https://www.cnblogs.com/xiaopangjr/p/7469687.html】下次继续补充
+- `git stash`
+  - `git stash [save message]`
+    - `save message`为临时存储备注信息，为可选项
+  - `git stash list `
+    - 列出临时存储列表
+  - `git stash pop stash@{num}`
+    - 恢复，`num`是可选项，通过`git stash list`可查看具体值。**只能恢复一次**
+  - `git stash apply stash@{num}`
+    - 恢复指定存储，`num`在`git stash list`会有显示，可恢复多次
+  - `git stash drop stash@{num}`
+    - 删除指定存储
+  - `git stash clear`
+    - 清除所有存储
+- 查看当前用户名、邮箱
+  - `git config user.name`
+  - `git config user.email`
+- 修改用户名、邮箱
+  - `git config --global user.name YOUR_NAME`
+  - `git config --global user.email YOUR_EMAIL`
+- 修改已提交的注释（最后一次的）
+  - `git commit --amend --reset-author`
+- 删除本地文件并提交远程
+  - `git rm -r file/dir`
+  - `git commit -m "注释"`
