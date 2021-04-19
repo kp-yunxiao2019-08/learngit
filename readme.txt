@@ -10,6 +10,7 @@ add test dev_push master_merge
 y1
 y2
 y3
+<<<<<<< HEAD
 Y4
 Y5
 
@@ -22,3 +23,7 @@ add merge
 
 add test dev_push master_merge
 >>>>>>> add: test_merge
+=======
+
+123
+>>>>>>> master添加123
