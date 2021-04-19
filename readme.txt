@@ -6,24 +6,3 @@ Git test.
 
 add test dev_push master_merge
 
-<<<<<<< HEAD
-y1
-y2
-y3
-<<<<<<< HEAD
-Y4
-Y5
-
-123
-456
-
-add from master
-=======
-add merge
-
-add test dev_push master_merge
->>>>>>> add: test_merge
-=======
-
-123
->>>>>>> master添加123
